@@ -9,6 +9,7 @@ import io
 import json
 import time
 import random
+import anki.utils
 
 
 class SyncApp:
