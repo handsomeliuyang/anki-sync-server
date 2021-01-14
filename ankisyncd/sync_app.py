@@ -1,6 +1,6 @@
 from webob.dec import wsgify
 from webob import Response
-from webob.exc import HTTPForbidden, HTTPNotFound
+from webob.exc import HTTPForbidden, HTTPNotFound, HTTPInternalServerError
 from ankisyncd.users import get_user_manager
 from ankisyncd.sessions import get_session_manager
 import os
@@ -14,7 +14,7 @@ import anki.utils
 
 class SyncApp:
     # 支持的所有的
-    valid_urls = ['hostKey', 'upload', 'download'] # + SyncCollectionHandler.operations + SyncMediaHandler.operations
+    valid_urls = ['hostKey', 'upload', 'download'] + ["meta"] # + SyncCollectionHandler.operations + SyncMediaHandler.operations
 
     def __init__(self, config):
 
@@ -71,10 +71,30 @@ class SyncApp:
 
                 return json.dumps(result)
 
+            if session is None:
+                raise HTTPForbidden()
 
-        # 测试代码
-        if session is None:
-            raise HTTPForbidden()
+            if url == 'meta':  # 关键请求
+                if session.skey == None and 's' in req.POST:
+                    session.skey = req.POST['s']
+                if 'v' in data:
+                    session.version = data['v']
+                if 'cv' in data:
+                    session.client_version = data['cv']
+
+            elif url == 'upload':  # 客户端整体上传
+                pass
+            elif url == 'download':  # 首次整体下载
+                pass
+
+            # This was one of our operations but it didn't get handled... Oops!
+            raise HTTPInternalServerError()
+
+        # media sync
+        elif req.path.startswith(self.base_media_url):
+            pass
+
+        return "Anki Sync Server"
 
     def operation_hostKey(self, username, password):
         if not self.user_manager.authenticate(username, password):
