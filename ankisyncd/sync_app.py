@@ -62,10 +62,15 @@ class SyncApp:
             if url not in self.valid_urls:
                 raise HTTPNotFound()
 
-            # 登录接口
+            # 登录接口，生成新的session，存入session.db中，返回hkey值
             if url == 'hostKey':
                 result = self.operation_hostKey(data.get("u"), data.get("p"))
-                return Response(result)
+                print(result)
+                if result is None:
+                    raise HTTPForbidden('null')
+
+                return json.dumps(result)
+
 
         # 测试代码
         if session is None:

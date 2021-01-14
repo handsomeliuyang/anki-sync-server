@@ -35,6 +35,9 @@ class SimpleSessionManager:
     def load(self, hkey):
         return self.sessions.get(hkey)
 
+    def save(self, hkey, session):
+        self.sessions[hkey] = session
+
 
 class SqliteSessionManager(SimpleSessionManager):
 
@@ -73,3 +76,14 @@ class SqliteSessionManager(SimpleSessionManager):
             cursor = conn.cursor()
             cursor.execute("CREATE TABLE session (hkey VARCHAR PRIMARY KEY, skey VARCHAR, username VARCHAR, path VARCHAR)")
         return conn
+
+    def save(self, hkey, session):
+        SimpleSessionManager.save(self, hkey, session)
+
+        conn = self._conn()
+        cursor = conn.cursor()
+
+        cursor.execute("INSERT OR REPLACE INTO session (hkey, skey, username, path) VALUES (?, ?, ?, ?)",
+               (hkey, session.skey, session.name, session.path))
+
+        conn.commit()
