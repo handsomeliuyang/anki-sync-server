@@ -74,13 +74,34 @@ class SyncApp:
             if session is None:
                 raise HTTPForbidden()
 
-            if url == 'meta':  # 关键请求
-                if session.skey == None and 's' in req.POST:
-                    session.skey = req.POST['s']
-                if 'v' in data:
-                    session.version = data['v']
-                if 'cv' in data:
-                    session.client_version = data['cv']
+            # 同步请求
+            if url in SyncCollectionHandler.operations + SyncMediaHandler.operations:
+                if url == 'meta':
+                    if session.skey == None and 's' in req.POST:
+                        session.skey = req.POST['s']
+                    if 'v' in data:
+                        session.version = data['v']
+                    if 'cv' in data:
+                        session.client_version = data['cv']
+
+                        self.session_manager.save(hkey, session)
+                        session = self.session_manager.load(hkey, self.create_session)
+
+                # thread = session.get_thread()
+
+                # if url in self.prehooks:
+                #     thread.execute(self.prehooks[url], [session])
+
+                result = self._execute_handler_method_in_thread(url, data, session)
+
+                # If it's a complex data type, we convert it to JSON
+                # if type(result) not in (str, bytes, Response):
+                #     result = json.dumps(result)
+
+                # if url in self.posthooks:
+                #     thread.execute(self.posthooks[url], [session])
+
+                return result
 
             elif url == 'upload':  # 客户端整体上传
                 pass
@@ -152,3 +173,9 @@ class SyncUserSession:
 
     def _generate_session_key(self):
         return anki.utils.checksum(str(random.random()))[:8]
+
+class SyncCollectionHandler:
+    operations = ['meta']
+
+class SyncMediaHandler:
+    operations = []
